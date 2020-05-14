@@ -3,6 +3,7 @@
 
 import os
 import sys
+import site
 
 from distutils.command.build_scripts import build_scripts
 from distutils import util, log
@@ -37,16 +38,35 @@ cmdclass = {
     'build_ext': build_ext,
 }
 
+usp = site.getusersitepackages()
+rel_usp = os.path.relpath(usp, start=site.USER_BASE)
+
+# DLL compiled w/ Visual Studio 2019.
+# Didn't seem to work, maybe b/c something w/ drive prefix.
+# Relative path from setup.py to DLL also seemed not to work, but maybe for same
+# reason, and not cause it couldn't.
+#dll_path = 'C:/Users/tom/src/liblo/cmake/out/install/x64-Debug/bin/liblo.dll'
+dll_path = 'C:\\Users\\tom\\src\\liblo\\cmake\\out\\install\\x64-Debug\\bin\\liblo.dll'
+assert os.path.isfile(dll_path)
+
 ext_modules = [
     Extension(
         'liblo',
         ['src/liblo.pyx'],
         extra_compile_args = [
             '-fno-strict-aliasing',
-            '-Werror-implicit-function-declaration',
-            '-Wfatal-errors',
+            #'-Werror-implicit-function-declaration',
+            #'-Wfatal-errors',
         ],
-        libraries = ['lo'],
+        # TFO: Changed 'lo' to 'liblo' under 'libraries' key.
+        #libraries = ['lo'],
+        libraries = ['liblo'],
+        # TFO: Added the following options pointing to my outputs of Visual
+        # Studio liblo compilation.
+        library_dirs=['C:/Users/tom/src/liblo/cmake/out/install/x64-Debug/lib'],
+        include_dirs=[
+            'C:/Users/tom/src/liblo/cmake/out/install/x64-Debug/include'
+        ],
     )
 ]
 
@@ -68,6 +88,8 @@ setup(
             'scripts/send_osc.1',
             'scripts/dump_osc.1',
         ]),
+        # TFO: added this
+        (rel_usp, [dll_path])
     ],
     cmdclass = cmdclass,
     ext_modules = ext_modules,
