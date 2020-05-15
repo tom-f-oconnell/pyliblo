@@ -48,22 +48,51 @@ rel_usp = os.path.relpath(usp, start=site.USER_BASE)
 #dll_path = 'C:/Users/tom/src/liblo/cmake/out/install/x64-Debug/bin/liblo.dll'
 dll_path = 'C:\\Users\\tom\\src\\liblo\\cmake\\out\\install\\x64-Debug\\bin\\liblo.dll'
 assert os.path.isfile(dll_path)
+dll_dir = os.path.dirname(dll_path)
+assert os.path.isdir(dll_dir)
+
+renamed_dll_path = os.path.join(os.path.dirname(dll_path), 'lo.dll')
+assert os.path.isfile(renamed_dll_path)
 
 ext_modules = [
     Extension(
         'liblo',
         ['src/liblo.pyx'],
         extra_compile_args = [
-            '-fno-strict-aliasing',
+            # none of these are recognized by windows compiler and last two
+            # activly cause compilation to fail
+            #'-fno-strict-aliasing',
             #'-Werror-implicit-function-declaration',
             #'-Wfatal-errors',
         ],
+
+        # TODO TODO do i need to point to any windows specific library dirs here
+        # or below for compilation outputs to actually work? some SO post (i
+        # forget exactly which) seemed to suggest that one of these normally has
+        # windows stuff referenced...
+
         # TFO: Changed 'lo' to 'liblo' under 'libraries' key.
-        #libraries = ['lo'],
-        libraries = ['liblo'],
+        # TODO how does it translate this name into the names of files to look
+        # for? does it? can i just rename them if so, or is something baked into
+        # the build artifacts that would prevent that from working?
+
+        # (this wouldn't work unless i copied liblo.lib to lo.lib in the same
+        # folder)
+        libraries = ['lo'],
+        # (this let compilation work w/o having to rename the .lib file, but it
+        # may or may not have been part of the reason things ultimately failed
+        # later)
+        #libraries = ['liblo'],
+
         # TFO: Added the following options pointing to my outputs of Visual
         # Studio liblo compilation.
         library_dirs=['C:/Users/tom/src/liblo/cmake/out/install/x64-Debug/lib'],
+        # TODO does this ever work on windows? yielding warning that this is
+        # unused w/ pip.exe install ./pyliblo/ --user -vvv
+        #runtime_library_dirs=[dll_dir],
+        # TODO could try adding dll path to runtime_library_dirs?
+        # (though not sure if that ultimately does something different than what
+        # i do w/ data_dirs below...)
         include_dirs=[
             'C:/Users/tom/src/liblo/cmake/out/install/x64-Debug/include'
         ],
@@ -89,7 +118,9 @@ setup(
             'scripts/dump_osc.1',
         ]),
         # TFO: added this
-        (rel_usp, [dll_path])
+        (rel_usp, [dll_path]),
+        # maybe this will work?
+        (rel_usp, [renamed_dll_path])
     ],
     cmdclass = cmdclass,
     ext_modules = ext_modules,
